@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<SharedFlowBundle revision="1" name="SF-VerifyAPIKey">
+  <DisplayName/>
+  <Description>Shared flow for Verify API Key for proxies</Description>
+  <CreatedAt>1775455043865</CreatedAt>
+  <LastModifiedAt>1775455102474</LastModifiedAt>
+  <SharedFlows>
+    <SharedFlow>default</SharedFlow>
+  </SharedFlows>
+  <subType>SharedFlow</subType>
+  <Policies>
+    <Policy>VA-VerifyAPIKey</Policy>
+  </Policies>
+</SharedFlowBundle>
