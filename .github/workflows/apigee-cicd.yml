@@ -1,0 +1,75 @@
+name: Apigee X CI/CD (WIF)
+
+on:
+  push:
+    branches:
+      - dev
+      - test
+      - main
+
+env:
+  PROXY_NAME: hello-world
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write # REQUIRED for WIF
+
+    steps:
+      # 1. Checkout
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 2. Authenticate using WIF
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+
+      # 3. Install gcloud
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      # 4. Install apigeecli
+      - name: Install apigeecli
+        run: |
+          curl -L https://github.com/apigee/apigeecli/releases/latest/download/apigeecli_linux_64.zip -o apigeecli.zip
+          unzip apigeecli.zip
+          chmod +x apigeecli
+          sudo mv apigeecli /usr/local/bin/
+
+      # 5. Get token
+      - name: Get Access Token
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          echo "TOKEN=$TOKEN" >> $GITHUB_ENV
+
+      # 6. Set Environment
+      - name: Set Environment
+        run: |
+          if [[ "${GITHUB_REF}" == "refs/heads/dev" ]]; then
+            echo "ENV=dev" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF}" == "refs/heads/test" ]]; then
+            echo "ENV=test" >> $GITHUB_ENV
+          else
+            echo "ENV=prod" >> $GITHUB_ENV
+          fi
+
+      # 7. Deploy to Apigee
+      - name: Deploy Proxy
+        run: |
+          apigeecli apis create bundle \
+            -n $PROXY_NAME \
+            -f apiproxies/$PROXY_NAME/apiproxy \
+            -o ${{ secrets.APIGEE_ORG }} \
+            -t $TOKEN
+
+          apigeecli apis deploy \
+            -n $PROXY_NAME \
+            -e $ENV \
+            -o ${{ secrets.APIGEE_ORG }} \
+            -t $TOKEN
